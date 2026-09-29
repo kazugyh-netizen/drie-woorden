@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-visual">
+<title>Drie Woorden</title>
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Drie Woorden">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+:root{
+  --bg:#ffffff; --ink:#111111; --sub:#77777a; --line:#e6e6e8; --soft:#f4f4f5; --accent:#ff6a13;
+  --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Hiragino Sans",sans-serif;}
+body{min-height:100dvh}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+
+/* 上の見出しとタブ */
+header{position:sticky;top:0;z-index:5;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);
+  padding:calc(var(--safe-t) + 10px) 16px 0;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;justify-content:space-between}
+.brand h1{margin:0;font-size:19px;letter-spacing:.01em}
+.today{font-size:13px;color:var(--sub);display:flex;align-items:center;gap:6px}
+.dots{display:flex;gap:4px}
+.dots i{width:9px;height:9px;border-radius:50%;background:var(--line)}
+.dots i.on{background:var(--accent)}
+.tabs{display:flex;gap:22px;margin-top:10px}
+.tabs button{padding:8px 0 10px;font-size:15px;color:var(--sub);border-bottom:2px solid transparent}
+.tabs button.on{color:var(--ink);border-color:var(--ink);font-weight:600}
+
+main{padding:16px 16px calc(var(--safe-b) + 24px)}
+.view[hidden]{display:none}
+
+/* 採取：撮る前 */
+.start{display:flex;flex-direction:column;gap:12px;align-items:stretch;margin-top:8vh}
+.start p{margin:0 0 6px;text-align:center;color:var(--sub);font-size:14px;line-height:1.7}
+.big{display:flex;align-items:center;justify-content:center;gap:10px;height:60px;border-radius:14px;
+  background:var(--ink);color:#fff;font-size:17px;font-weight:600}
+.big.sub{background:var(--soft);color:var(--ink);font-weight:500;height:50px;font-size:15px}
+.done-msg{text-align:center;font-size:14px;color:var(--accent);min-height:1em}
+
+/* 採取：撮ったあと */
+.compose[hidden]{display:none}
+.compose{padding-bottom:150px}
+.preview{display:block;width:100%;height:auto;max-height:58dvh;object-fit:contain;border-radius:12px;background:var(--soft)}
+.row{display:flex;gap:8px;margin-top:12px}
+.row .grow{flex:1}
+.btn{height:46px;border-radius:12px;background:var(--soft);padding:0 16px;font-size:15px}
+.btn.primary{background:var(--ink);color:#fff;font-weight:600}
+.btn:disabled{opacity:.35}
+
+/* 入力欄＋候補（キーボードのすぐ上に貼り付く） */
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(255,255,255,.97);
+  border-top:1px solid var(--line);padding:10px 12px calc(var(--safe-b) + 8px);
+  transform:translateY(calc(-1 * var(--kb,0px)))}
+.dock[hidden]{display:none}
+.inrow{display:flex;gap:8px;align-items:center}
+.inrow input{flex:1;min-width:0;height:48px;border-radius:12px;border:1.5px solid var(--line);padding:0 14px;
+  font-size:20px;font-weight:600;outline:none;background:#fff}
+.inrow input:focus{border-color:var(--ink)}
+.speak{width:48px;height:48px;border-radius:12px;background:var(--soft);font-size:20px;flex:none}
+.speak:disabled{opacity:.35}
+.state{font-size:12px;color:var(--sub);margin:6px 2px 0;min-height:1.2em}
+.state.ok{color:#1c8a4b}
+.chips{display:flex;gap:6px;overflow-x:auto;margin-top:6px;padding-bottom:2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chips button{flex:none;height:38px;padding:0 14px;border-radius:19px;background:var(--soft);font-size:16px}
+.chips button b{font-weight:700}
+
+/* ライブラリ */
+.day{margin-bottom:26px}
+.day h2{display:flex;justify-content:space-between;align-items:baseline;margin:0 0 10px;font-size:15px}
+.day h2 span{font-size:12px;color:var(--sub);font-weight:400}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.card{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--soft)}
+.card img{width:100%;height:100%;object-fit:cover;display:block}
+.empty{text-align:center;color:var(--sub);font-size:14px;margin-top:14vh;line-height:1.8}
+.foot{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap}
+.foot .btn{height:38px;font-size:13px}
+.note{font-size:12px;color:var(--sub);margin-top:8px;line-height:1.6}
+
+/* 1枚を大きく */
+.sheet{position:fixed;inset:0;z-index:40;background:rgba(255,255,255,.98);display:flex;flex-direction:column;
+  padding:calc(var(--safe-t) + 12px) 16px calc(var(--safe-b) + 16px)}
+.sheet[hidden]{display:none}
+.sheet .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.sheet .top .d{font-size:13px;color:var(--sub)}
+.sheet img{flex:1;min-height:0;width:100%;object-fit:contain;border-radius:12px}
+.sheet .word{display:flex;align-items:center;justify-content:center;gap:12px;margin:14px 0 6px}
+.sheet .word b{font-size:30px}
+.sheet .acts{display:flex;gap:8px}
+.sheet .acts .btn{flex:1}
+.danger{color:#c62828}
+
+.toast{position:fixed;left:50%;top:calc(var(--safe-t) + 70px);transform:translateX(-50%);z-index:60;
+  background:var(--ink);color:#fff;font-size:14px;padding:10px 16px;border-radius:20px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <h1>Drie Woorden</h1>
+    <div class="today">今日 <span class="dots" id="dots"><i></i><i></i><i></i></span> <span id="count">0/3</span></div>
+  </div>
+  <nav class="tabs">
+    <button data-tab="shoot" class="on">採取</button>
+    <button data-tab="lib">ライブラリ</button>
+  </nav>
+</header>
+
+<main>
+  <!-- 採取 -->
+  <section class="view" id="v-shoot">
+    <div class="start" id="start">
+      <p>身の回りのものを撮って、<br>オランダ語で名前をつけよう。</p>
+      <button class="big" id="b-cam">📷 撮る</button>
+      <button class="big sub" id="b-pick">写真から選ぶ</button>
+      <div class="done-msg" id="done-msg"></div>
+    </div>
+    <div class="compose" id="compose" hidden>
+      <canvas id="cv" class="preview"></canvas>
+      <div class="row">
+        <button class="btn" id="b-retake">撮り直す</button>
+        <button class="btn primary grow" id="b-save" disabled>保存する</button>
+      </div>
+    </div>
+    <input type="file" id="f-cam" accept="image/*" capture="environment" hidden>
+    <input type="file" id="f-pick" accept="image/*" hidden>
+  </section>
+
+  <!-- ライブラリ -->
+  <section class="view" id="v-lib" hidden>
+    <div id="lib"></div>
+    <div class="foot">
+      <button class="btn" id="b-export">控えを書き出す</button>
+      <button class="btn" id="b-import">控えから戻す</button>
+      <input type="file" id="f-import" accept="application/json,.json" hidden>
+    </div>
+    <div class="note">写真と単語はこの端末のブラウザの中にだけ保存されています。機種変更やデータ消去に備えて、ときどき控えを書き出してください。</div>
+  </section>
+</main>
+
+<!-- 入力欄と候補 -->
+<div class="dock" id="dock" hidden>
+  <div class="inrow">
+    <input id="word" type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="none"
+      spellcheck="false" lang="nl" placeholder="オランダ語で入力">
+    <button class="speak" id="b-speak" aria-label="読み上げ" disabled>🔊</button>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div class="state" id="state"></div>
+</div>
+
+<!-- 1枚を大きく -->
+<div class="sheet" id="sheet" hidden>
+  <div class="top"><span class="d" id="s-date"></span><button class="btn" id="s-close">閉じる</button></div>
+  <img id="s-img" alt="">
+  <div class="word"><b id="s-word"></b><button class="speak" id="s-speak" aria-label="読み上げ">🔊</button></div>
+  <div class="acts">
+    <button class="btn" id="s-share">写真に保存</button>
+    <button class="btn danger" id="s-del">削除</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const GOAL = 3;
+const MAX_SIDE = 1600;
+
+/* ---------- 保存（IndexedDB） ---------- */
+const DB_NAME = 'drie-woorden', STORE = 'items';
+let dbp;
+function db(){
+  return dbp ||= new Promise((ok, ng) => {
+    const r = indexedDB.open(DB_NAME, 1);
+    r.onupgradeneeded = () => { const s = r.result.createObjectStore(STORE, {keyPath:'id'}); s.createIndex('date','date'); };
+    r.onsuccess = () => ok(r.result); r.onerror = () => ng(r.error);
+  });
+}
+async function tx(mode, fn){
+  const d = await db();
+  return new Promise((ok, ng) => {
+    const t = d.transaction(STORE, mode), s = t.objectStore(STORE);
+    const res = fn(s);
+    t.oncomplete = () => ok(res && 'result' in res ? res.result : undefined);
+    t.onerror = () => ng(t.error);
+  });
+}
+const putItem = it => tx('readwrite', s => s.put(it));
+const delItem = id => tx('readwrite', s => s.delete(id));
+const allItems = () => tx('readonly', s => s.getAll());
+navigator.storage?.persist?.();
+
+/* ---------- 日付 ---------- */
+const pad = n => String(n).padStart(2,'0');
+const dayKey = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const WD = ['日','月','火','水','木','金','土'];
+function dayLabel(key){
+  const [y,m,d] = key.split('-').map(Number), dt = new Date(y, m-1, d);
+  const today = dayKey(), yest = dayKey(new Date(Date.now() - 864e5));
+  const base = `${m}月${d}日（${WD[dt.getDay()]}）`;
+  if (key === today) return '今日　' + base;
+  if (key === yest) return '昨日　' + base;
+  return (y !== new Date().getFullYear() ? y + '年' : '') + base;
+}
+
+/* ---------- 今日の数 ---------- */
+let items = [];
+async function refresh(){
+  items = (await allItems()).sort((a,b) => b.createdAt - a.createdAt);
+  const n = items.filter(it => it.date === dayKey()).length;
+  document.querySelectorAll('#dots i').forEach((el,i) => el.classList.toggle('on', i < n));
+  $('#count').textContent = `${n}/${GOAL}`;
+  $('#done-msg').textContent = n >= GOAL ? '今日の3語がそろいました。もっと集めてもOK。' : '';
+  renderLib();
+}
+
+/* ---------- 読み上げ ---------- */
+let nlVoice = null;
+function pickVoice(){
+  const vs = speechSynthesis.getVoices().filter(v => /^nl(-|_|$)/i.test(v.lang));
+  nlVoice = vs.find(v => /nl.NL/i.test(v.lang) && v.localService) || vs.find(v => /nl.NL/i.test(v.lang)) || vs[0] || null;
+}
+if ('speechSynthesis' in window){ pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+function speak(text){
+  text = (text || '').trim();
+  if (!text || !('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'nl-NL'; if (nlVoice) u.voice = nlVoice; u.rate = 0.85;
+  speechSynthesis.speak(u);
+  if (!nlVoice) toast('オランダ語の声が見つかりません。端末の設定で音声を追加してください');
+}
+
+/* ---------- 単語リスト（入力候補） ---------- */
+let WORDS = [], FREQ_N = 0, WORDSET = new Set(), NORM = [];
+const norm = s => s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+fetch('words.txt').then(r => r.text()).then(t => {
+  const lines = t.split('\n');
+  FREQ_N = +lines[0].slice(1);
+  WORDS = lines.slice(1);
+  WORDSET = new Set(WORDS);
+  NORM = WORDS.map(norm);
+  onType();
+}).catch(() => {});
+
+function suggest(q){
+  const nq = norm(q.trim());
+  if (!nq) return [];
+  const out = [];
+  for (let i = 0; i < WORDS.length && out.length < 12; i++){
+    if (NORM[i].startsWith(nq) && WORDS[i] !== q.trim()) out.push(WORDS[i]);
+  }
+  return out;
+}
+
+/* ---------- 画像の合成：真ん中に白帯＋黒文字 ---------- */
+let photo = null; // 縮めた元画像（canvas）
+const cv = $('#cv'), ctx = cv.getContext('2d');
+
+async function loadPhoto(file){
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.src = url;
+  await img.decode();          // 向き（EXIF）はブラウザが反映する
+  const k = Math.min(1, MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
+  const w = Math.round(img.naturalWidth * k), h = Math.round(img.naturalHeight * k);
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  c.getContext('2d').drawImage(img, 0, 0, w, h);
+  URL.revokeObjectURL(url);
+  return c;
+}
+
+function draw(word){
+  if (!photo) return;
+  const w = photo.width, h = photo.height;
+  cv.width = w; cv.height = h;
+  ctx.drawImage(photo, 0, 0);
+  const bandH = Math.round(Math.min(w, h) * 0.16);
+  const y = Math.round((h - bandH) / 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, y, w, bandH);
+  word = (word || '').trim();
+  if (!word) return;
+  let size = Math.round(bandH * 0.58);
+  const font = s => `700 ${s}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+  ctx.font = font(size);
+  while (ctx.measureText(word).width > w * 0.88 && size > 10){ size -= 2; ctx.font = font(size); }
+  ctx.fillStyle = '#111111';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(word, w / 2, y + bandH / 2 + size * 0.04);
+}
+
+/* ---------- 採取の流れ ---------- */
+const input = $('#word');
+$('#b-cam').onclick = () => $('#f-cam').click();
+$('#b-pick').onclick = () => $('#f-pick').click();
+$('#f-cam').onchange = $('#f-pick').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try { photo = await loadPhoto(f); }
+  catch { toast('この写真は読み込めませんでした'); return; }
+  input.value = '';
+  $('#start').hidden = true; $('#compose').hidden = false; $('#dock').hidden = false;
+  draw(''); onType();
+  setTimeout(() => input.focus(), 250);
+};
+$('#b-retake').onclick = () => resetShoot();
+
+function resetShoot(){
+  photo = null; input.value = ''; input.blur();
+  $('#compose').hidden = true; $('#dock').hidden = true; $('#start').hidden = false;
+}
+
+function onType(){
+  const q = input.value;
+  draw(q);
+  const has = q.trim().length > 0;
+  $('#b-save').disabled = !has;
+  $('#b-speak').disabled = !has;
+  const list = suggest(q), nq = q.trim();
+  const chips = $('#chips');
+  chips.innerHTML = '';
+  for (const s of list){
+    const b = document.createElement('button');
+    const n = nq.length;
+    b.innerHTML = `<b>${esc(s.slice(0, n))}</b>${esc(s.slice(n))}`;
+    b.onpointerdown = ev => ev.preventDefault(); // キーボードを閉じない
+    b.onclick = () => { input.value = s; onType(); speak(s); };
+    chips.appendChild(b);
+  }
+  const st = $('#state');
+  if (!has){ st.textContent = WORDS.length ? '' : '候補を読み込み中…'; st.className = 'state'; }
+  else if (WORDSET.has(nq) || WORDSET.has(nq.toLowerCase())){ st.textContent = '✓ 辞書にある語'; st.className = 'state ok'; }
+  else { st.textContent = WORDS.length ? '辞書に無い語（つづりを確かめてください）' : ''; st.className = 'state'; }
+}
+input.addEventListener('input', onType);
+input.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); input.blur(); } });
+$('#b-speak').onpointerdown = e => e.preventDefault();
+$('#b-speak').onclick = () => speak(input.value);
+
+$('#b-save').onclick = async () => {
+  const word = input.value.trim();
+  if (!word || !photo) return;
+  draw(word);
+  const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.86));
+  const now = new Date();
+  await putItem({ id: now.getTime() + '-' + Math.random().toString(36).slice(2,6), word, date: dayKey(now), createdAt: now.getTime(), blob });
+  resetShoot();
+  await refresh();
+  const n = items.filter(it => it.date === dayKey()).length;
+  toast(n === GOAL ? `「${word}」を保存。今日の3語そろいました 🎉` : `「${word}」を保存しました（今日 ${n}/${GOAL}）`);
+};
+
+/* キーボードが出たら入力欄をその上へ（iOS Safari） */
+if (window.visualViewport){
+  const vv = window.visualViewport;
+  const fit = () => {
+    const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    document.documentElement.style.setProperty('--kb', kb + 'px');
+  };
+  vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit);
+}
+
+/* ---------- ライブラリ ---------- */
+const urls = new Map();
+const urlOf = it => { if (!urls.has(it.id)) urls.set(it.id, URL.createObjectURL(it.blob)); return urls.get(it.id); };
+
+function renderLib(){
+  const box = $('#lib');
+  box.innerHTML = '';
+  if (!items.length){ box.innerHTML = '<div class="empty">まだ何もありません。<br>「採取」から1枚目を撮ってみましょう。</div>'; return; }
+  const groups = new Map();
+  for (const it of items){ if (!groups.has(it.date)) groups.set(it.date, []); groups.get(it.date).push(it); }
+  for (const [key, list] of groups){
+    const sec = document.createElement('div'); sec.className = 'day';
+    sec.innerHTML = `<h2>${dayLabel(key)}<span>${list.length}語</span></h2>`;
+    const grid = document.createElement('div'); grid.className = 'grid';
+    for (const it of [...list].reverse()){
+      const c = document.createElement('button'); c.className = 'card';
+      c.innerHTML = `<img loading="lazy">`;
+      c.querySelector('img').src = urlOf(it);
+      c.querySelector('img').alt = it.word;
+      c.onclick = () => openSheet(it);
+      grid.appendChild(c);
+    }
+    sec.appendChild(grid); box.appendChild(sec);
+  }
+}
+
+let current = null;
+function openSheet(it){
+  current = it;
+  $('#s-img').src = urlOf(it);
+  $('#s-word').textContent = it.word;
+  const t = new Date(it.createdAt);
+  $('#s-date').textContent = `${dayLabel(it.date)}　${pad(t.getHours())}:${pad(t.getMinutes())}`;
+  $('#sheet').hidden = false;
+  speak(it.word);
+}
+$('#s-close').onclick = () => { $('#sheet').hidden = true; current = null; };
+$('#s-speak').onclick = () => current && speak(current.word);
+$('#s-img').onclick = () => current && speak(current.word);
+$('#s-del').onclick = async () => {
+  if (!current || !confirm(`「${current.word}」を削除しますか？`)) return;
+  await delItem(current.id);
+  URL.revokeObjectURL(urls.get(current.id)); urls.delete(current.id);
+  $('#sheet').hidden = true; current = null;
+  await refresh();
+};
+$('#s-share').onclick = async () => {
+  if (!current) return;
+  const file = new File([current.blob], `${current.date}_${current.word}.jpg`, {type:'image/jpeg'});
+  if (navigator.canShare?.({files:[file]})){
+    try { await navigator.share({files:[file]}); } catch {}
+  } else {
+    const a = document.createElement('a'); a.href = urlOf(current); a.download = file.name; a.click();
+  }
+};
+
+/* ---------- 控え（書き出し／戻す） ---------- */
+const blobToData = b => new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); });
+$('#b-export').onclick = async () => {
+  const list = await allItems();
+  const out = [];
+  for (const it of list) out.push({ ...it, blob: undefined, image: await blobToData(it.blob) });
+  const blob = new Blob([JSON.stringify({ app:'drie-woorden', v:1, items:out })], {type:'application/json'});
+  const name = `drie-woorden_${dayKey()}.json`;
+  const file = new File([blob], name, {type:'application/json'});
+  if (navigator.canShare?.({files:[file]})){ try { await navigator.share({files:[file]}); return; } catch { return; } }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+};
+$('#b-import').onclick = () => $('#f-import').click();
+$('#f-import').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    if (data.app !== 'drie-woorden') throw 0;
+    let n = 0;
+    for (const it of data.items){
+      const blob = await (await fetch(it.image)).blob();
+      await putItem({ id:it.id, word:it.word, date:it.date, createdAt:it.createdAt, blob }); n++;
+    }
+    await refresh(); toast(`${n}件を戻しました`);
+  } catch { toast('この控えは読み込めませんでした'); }
+};
+
+/* ---------- タブ・その他 ---------- */
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  $('#v-shoot').hidden = b.dataset.tab !== 'shoot';
+  $('#v-lib').hidden = b.dataset.tab !== 'lib';
+  $('#dock').hidden = b.dataset.tab !== 'shoot' || !photo;
+});
+function esc(s){ return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+let tt; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 2400); }
+
+if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
+refresh();
+</script>
+</body>
+</html>
