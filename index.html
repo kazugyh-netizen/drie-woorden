@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-visual">
@@ -73,6 +73,16 @@ main{padding:16px 16px calc(var(--safe-b) + 24px)}
 .chips::-webkit-scrollbar{display:none}
 .chips button{flex:none;height:38px;padding:0 14px;border-radius:19px;background:var(--soft);font-size:16px}
 .chips button b{font-weight:700}
+.chips button small{font-size:12px;color:var(--sub);margin-left:6px}
+.modes{display:flex;gap:4px;background:var(--soft);border-radius:10px;padding:3px;margin-bottom:8px;width:max-content}
+.modes button{height:30px;padding:0 14px;border-radius:8px;font-size:13px;color:var(--sub)}
+.modes button.on{background:#fff;color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.jatag{display:inline-flex;align-items:center;gap:6px;margin-left:8px;font-size:12px;color:var(--ink);background:var(--soft);border-radius:12px;padding:3px 4px 3px 10px}
+.jatag button{width:18px;height:18px;border-radius:50%;background:#fff;font-size:11px;line-height:18px}
+.state a{color:var(--ink)}
+.save{height:48px;border-radius:12px;background:var(--ink);color:#fff;font-weight:600;padding:0 16px;flex:none;font-size:15px}
+.save:disabled{opacity:.3}
+.sheet .ja{text-align:center;color:var(--sub);font-size:14px;margin-bottom:10px;min-height:1em}
 
 /* ライブラリ */
 .day{margin-bottom:26px}
@@ -99,7 +109,7 @@ main{padding:16px 16px calc(var(--safe-b) + 24px)}
 .sheet .acts .btn{flex:1}
 .danger{color:#c62828}
 
-.toast{position:fixed;left:50%;top:calc(var(--safe-t) + 70px);transform:translateX(-50%);z-index:60;
+.toast{position:fixed;left:50%;top:calc(var(--safe-t) + 104px);transform:translateX(-50%);z-index:60;
   background:var(--ink);color:#fff;font-size:14px;padding:10px 16px;border-radius:20px;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.on{opacity:1}
 </style>
@@ -108,11 +118,11 @@ main{padding:16px 16px calc(var(--safe-b) + 24px)}
 <header>
   <div class="brand">
     <h1>Drie Woorden</h1>
-    <div class="today">今日 <span class="dots" id="dots"><i></i><i></i><i></i></span> <span id="count">0/3</span></div>
+    <div class="today">Today <span class="dots" id="dots"><i></i><i></i><i></i></span> <span id="count">0/3</span></div>
   </div>
   <nav class="tabs">
-    <button data-tab="shoot" class="on">採取</button>
-    <button data-tab="lib">ライブラリ</button>
+    <button data-tab="shoot" class="on">Collect</button>
+    <button data-tab="lib">Library</button>
   </nav>
 </header>
 
@@ -120,16 +130,15 @@ main{padding:16px 16px calc(var(--safe-b) + 24px)}
   <!-- 採取 -->
   <section class="view" id="v-shoot">
     <div class="start" id="start">
-      <p>身の回りのものを撮って、<br>オランダ語で名前をつけよう。</p>
-      <button class="big" id="b-cam">📷 撮る</button>
-      <button class="big sub" id="b-pick">写真から選ぶ</button>
+      <p>Snap something around you<br>and give it a Dutch name.</p>
+      <button class="big" id="b-cam">📷 Take photo</button>
+      <button class="big sub" id="b-pick">Choose from library</button>
       <div class="done-msg" id="done-msg"></div>
     </div>
     <div class="compose" id="compose" hidden>
       <canvas id="cv" class="preview"></canvas>
       <div class="row">
-        <button class="btn" id="b-retake">撮り直す</button>
-        <button class="btn primary grow" id="b-save" disabled>保存する</button>
+        <button class="btn" id="b-retake">Retake</button>
       </div>
     </div>
     <input type="file" id="f-cam" accept="image/*" capture="environment" hidden>
@@ -140,20 +149,22 @@ main{padding:16px 16px calc(var(--safe-b) + 24px)}
   <section class="view" id="v-lib" hidden>
     <div id="lib"></div>
     <div class="foot">
-      <button class="btn" id="b-export">控えを書き出す</button>
-      <button class="btn" id="b-import">控えから戻す</button>
+      <button class="btn" id="b-export">Export backup</button>
+      <button class="btn" id="b-import">Restore backup</button>
       <input type="file" id="f-import" accept="application/json,.json" hidden>
     </div>
-    <div class="note">写真と単語はこの端末のブラウザの中にだけ保存されています。機種変更やデータ消去に備えて、ときどき控えを書き出してください。</div>
+    <div class="note">Photos and words are stored only in this browser on this device. Export a backup now and then, in case you change phones or clear site data.<br><span id="usage"></span></div>
   </section>
 </main>
 
 <!-- 入力欄と候補 -->
 <div class="dock" id="dock" hidden>
+  <div class="modes" id="modes"><button data-mode="nl">Dutch</button><button data-mode="ja">Japanese → Dutch</button></div>
   <div class="inrow">
     <input id="word" type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="none"
-      spellcheck="false" lang="nl" placeholder="オランダ語で入力">
-    <button class="speak" id="b-speak" aria-label="読み上げ" disabled>🔊</button>
+      spellcheck="false" lang="nl" placeholder="Type in Dutch">
+    <button class="speak" id="b-speak" aria-label="Speak" disabled>🔊</button>
+    <button class="save" id="b-save" disabled>Save</button>
   </div>
   <div class="chips" id="chips"></div>
   <div class="state" id="state"></div>
@@ -161,12 +172,13 @@ main{padding:16px 16px calc(var(--safe-b) + 24px)}
 
 <!-- 1枚を大きく -->
 <div class="sheet" id="sheet" hidden>
-  <div class="top"><span class="d" id="s-date"></span><button class="btn" id="s-close">閉じる</button></div>
+  <div class="top"><span class="d" id="s-date"></span><button class="btn" id="s-close">Close</button></div>
   <img id="s-img" alt="">
-  <div class="word"><b id="s-word"></b><button class="speak" id="s-speak" aria-label="読み上げ">🔊</button></div>
+  <div class="word"><b id="s-word"></b><button class="speak" id="s-speak" aria-label="Speak">🔊</button></div>
+  <div class="ja" id="s-ja"></div>
   <div class="acts">
-    <button class="btn" id="s-share">写真に保存</button>
-    <button class="btn danger" id="s-del">削除</button>
+    <button class="btn" id="s-share">Save image</button>
+    <button class="btn danger" id="s-del">Delete</button>
   </div>
 </div>
 
@@ -175,7 +187,8 @@ main{padding:16px 16px calc(var(--safe-b) + 24px)}
 <script>
 const $ = s => document.querySelector(s);
 const GOAL = 3;
-const MAX_SIDE = 1600;
+const MAX_SIDE = 1440;   // 画面で見て劣化が分からないぎりぎり
+const JPEG_Q = 0.8;
 
 /* ---------- 保存（IndexedDB） ---------- */
 const DB_NAME = 'drie-woorden', STORE = 'items';
@@ -204,14 +217,15 @@ navigator.storage?.persist?.();
 /* ---------- 日付 ---------- */
 const pad = n => String(n).padStart(2,'0');
 const dayKey = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-const WD = ['日','月','火','水','木','金','土'];
+const WD = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function dayLabel(key){
   const [y,m,d] = key.split('-').map(Number), dt = new Date(y, m-1, d);
   const today = dayKey(), yest = dayKey(new Date(Date.now() - 864e5));
-  const base = `${m}月${d}日（${WD[dt.getDay()]}）`;
-  if (key === today) return '今日　' + base;
-  if (key === yest) return '昨日　' + base;
-  return (y !== new Date().getFullYear() ? y + '年' : '') + base;
+  const base = `${WD[dt.getDay()]}, ${MON[m-1]} ${d}` + (y !== new Date().getFullYear() ? `, ${y}` : '');
+  if (key === today) return 'Today · ' + base;
+  if (key === yest) return 'Yesterday · ' + base;
+  return base;
 }
 
 /* ---------- 今日の数 ---------- */
@@ -221,8 +235,12 @@ async function refresh(){
   const n = items.filter(it => it.date === dayKey()).length;
   document.querySelectorAll('#dots i').forEach((el,i) => el.classList.toggle('on', i < n));
   $('#count').textContent = `${n}/${GOAL}`;
-  $('#done-msg').textContent = n >= GOAL ? '今日の3語がそろいました。もっと集めてもOK。' : '';
+  $('#done-msg').textContent = n >= GOAL ? 'All 3 words collected today. Feel free to keep going.' : '';
   renderLib();
+  navigator.storage?.estimate?.().then(e => {
+    const mb = b => (b / 1048576).toFixed(1) + ' MB';
+    $('#usage').textContent = `${items.length} ${items.length === 1 ? "photo" : "photos"} · ${mb(e.usage || 0)} of storage used (incl. dictionaries)`;
+  }).catch(() => {});
 }
 
 /* ---------- 読み上げ ---------- */
@@ -239,7 +257,7 @@ function speak(text){
   const u = new SpeechSynthesisUtterance(text);
   u.lang = 'nl-NL'; if (nlVoice) u.voice = nlVoice; u.rate = 0.85;
   speechSynthesis.speak(u);
-  if (!nlVoice) toast('オランダ語の声が見つかりません。端末の設定で音声を追加してください');
+  if (!nlVoice) toast('No Dutch voice found. Add one in your device settings.');
 }
 
 /* ---------- 単語リスト（入力候補） ---------- */
@@ -310,57 +328,131 @@ $('#f-cam').onchange = $('#f-pick').onchange = async e => {
   const f = e.target.files[0]; e.target.value = '';
   if (!f) return;
   try { photo = await loadPhoto(f); }
-  catch { toast('この写真は読み込めませんでした'); return; }
-  input.value = '';
+  catch { toast("Couldn't load this photo"); return; }
+  input.value = ''; jaSrc = '';
   $('#start').hidden = true; $('#compose').hidden = false; $('#dock').hidden = false;
-  draw(''); onType();
+  draw(''); setMode(mode);
   setTimeout(() => input.focus(), 250);
 };
 $('#b-retake').onclick = () => resetShoot();
 
 function resetShoot(){
-  photo = null; input.value = ''; input.blur();
+  photo = null; input.value = ''; jaSrc = ''; input.blur();
   $('#compose').hidden = true; $('#dock').hidden = true; $('#start').hidden = false;
 }
 
-function onType(){
-  const q = input.value;
-  draw(q);
-  const has = q.trim().length > 0;
-  $('#b-save').disabled = !has;
-  $('#b-speak').disabled = !has;
-  const list = suggest(q), nq = q.trim();
-  const chips = $('#chips');
-  chips.innerHTML = '';
-  for (const s of list){
-    const b = document.createElement('button');
-    const n = nq.length;
-    b.innerHTML = `<b>${esc(s.slice(0, n))}</b>${esc(s.slice(n))}`;
-    b.onpointerdown = ev => ev.preventDefault(); // キーボードを閉じない
-    b.onclick = () => { input.value = s; onType(); speak(s); };
-    chips.appendChild(b);
+/* ---------- 日本語→オランダ語（JMdict） ---------- */
+let mode = 'nl', jaSrc = '', JA = null, jaLoading = null, saving = false;
+try { mode = localStorage.getItem('drie-woorden.mode') === 'ja' ? 'ja' : 'nl'; } catch {}
+function loadJA(){
+  return jaLoading ||= fetch('ja_nl.txt').then(r => r.text()).then(t => {
+    JA = t.split('\n').map(l => { const [k, g] = l.split('\t'); return { keys: k.split(',').map(kata2hira), label: k.split(',')[0], nl: g.split(';') }; });
+    onType();
+  }).catch(() => { jaLoading = null; });
+}
+const kata2hira = s => s.replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+// 見出し（漢字・かな）と完全一致を先に、前方一致を後ろに。表はよく使う語が先に並んでいる
+function jaLookup(q){
+  q = kata2hira(q.trim());
+  if (!q || !JA) return [];
+  const exact = [], pre = [];
+  for (const e of JA){
+    if (e.keys.includes(q)){ exact.push(e); if (exact.length >= 6) break; }
+    else if (pre.length < 8 && e.keys.some(k => k.startsWith(q))) pre.push(e);
   }
-  const st = $('#state');
-  if (!has){ st.textContent = WORDS.length ? '' : '候補を読み込み中…'; st.className = 'state'; }
-  else if (WORDSET.has(nq) || WORDSET.has(nq.toLowerCase())){ st.textContent = '✓ 辞書にある語'; st.className = 'state ok'; }
-  else { st.textContent = WORDS.length ? '辞書に無い語（つづりを確かめてください）' : ''; st.className = 'state'; }
+  return [...exact, ...pre].slice(0, 8);
+}
+function paintModes(){
+  document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
+  input.lang = mode === 'ja' ? 'ja' : 'nl';
+  input.placeholder = mode === 'ja' ? 'Type in Japanese' : 'Type in Dutch';
+}
+function setMode(m){
+  mode = m;
+  try { localStorage.setItem('drie-woorden.mode', m); } catch {}
+  paintModes();
+  if (m === 'ja') loadJA();
+  input.value = ''; onType(); input.focus();
+}
+document.querySelectorAll('#modes button').forEach(b => {
+  b.onpointerdown = e => e.preventDefault();
+  b.onclick = () => setMode(b.dataset.mode);
+});
+// 日本語で訳を選んだら、オランダ語の欄に移して直せるようにする（元の日本語は札で残す）
+function pickFromJa(nl, ja){
+  jaSrc = ja; mode = 'nl'; paintModes();
+  input.value = nl; onType(); speak(nl);
+}
+const dutchWord = () => mode === 'nl' ? input.value.trim() : '';
+
+function chip(html, onPick){
+  const b = document.createElement('button');
+  b.innerHTML = html;
+  b.onpointerdown = ev => ev.preventDefault(); // キーボードを閉じない
+  b.onclick = onPick;
+  $('#chips').appendChild(b);
+}
+
+function onType(){
+  const q = input.value, nq = q.trim(), st = $('#state');
+  $('#chips').innerHTML = '';
+  if (mode === 'ja'){
+    draw('');
+    $('#b-save').disabled = true; $('#b-speak').disabled = true;
+    st.className = 'state';
+    if (!JA){ st.textContent = 'Loading dictionary…'; return; }
+    const hits = jaLookup(q);
+    for (const e of hits) for (const nl of e.nl.slice(0, 3))
+      chip(`<b>${esc(nl)}</b><small>${esc(e.label)}</small>`, () => pickFromJa(nl, nq));
+    if (!nq) st.textContent = 'Type a word in Japanese, then pick the Dutch.';
+    else if (!hits.length)
+      st.innerHTML = `No match in the offline dictionary. <a href="https://translate.google.com/?sl=ja&tl=nl&text=${encodeURIComponent(nq)}" target="_blank" rel="noopener">Look it up online ↗</a>`;
+    else st.textContent = 'Tap a Dutch word to use it.';
+    return;
+  }
+  draw(q);
+  const has = nq.length > 0;
+  $('#b-save').disabled = !has || saving;
+  $('#b-speak').disabled = !has;
+  for (const s of suggest(q)){
+    const n = nq.length;
+    chip(`<b>${esc(s.slice(0, n))}</b>${esc(s.slice(n))}`, () => { input.value = s; onType(); speak(s); });
+  }
+  const tag = jaSrc ? `<span class="jatag">${esc(jaSrc)}<button id="b-untag" aria-label="Remove">✕</button></span>` : '';
+  if (!has){ st.innerHTML = (WORDS.length ? '' : 'Loading word list…') + tag; st.className = 'state'; }
+  else if (WORDSET.has(nq) || WORDSET.has(nq.toLowerCase())){ st.innerHTML = '✓ In the dictionary' + tag; st.className = 'state ok'; }
+  else { st.innerHTML = (WORDS.length ? 'Not in the dictionary — check the spelling' : '') + tag; st.className = 'state'; }
+  const ut = $('#b-untag');
+  if (ut){ ut.onpointerdown = e => e.preventDefault(); ut.onclick = () => { jaSrc = ''; onType(); }; }
 }
 input.addEventListener('input', onType);
 input.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); input.blur(); } });
 $('#b-speak').onpointerdown = e => e.preventDefault();
-$('#b-speak').onclick = () => speak(input.value);
+$('#b-speak').onclick = () => speak(dutchWord());
+
+$('#b-save').onpointerdown = e => e.preventDefault();
 
 $('#b-save').onclick = async () => {
-  const word = input.value.trim();
-  if (!word || !photo) return;
-  draw(word);
-  const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.86));
-  const now = new Date();
-  await putItem({ id: now.getTime() + '-' + Math.random().toString(36).slice(2,6), word, date: dayKey(now), createdAt: now.getTime(), blob });
+  const word = dutchWord();
+  if (!word || !photo || saving) return;
+  saving = true; $('#b-save').disabled = true;
+  try {
+    draw(word);
+    const blob = await new Promise((ok, ng) => cv.toBlob(b => b ? ok(b) : ng(new Error('could not encode the image')), 'image/jpeg', JPEG_Q));
+    const buf = await blob.arrayBuffer();
+    const now = new Date();
+    await putItem({ id: now.getTime() + '-' + Math.random().toString(36).slice(2,6), word, ja: jaSrc || undefined,
+      date: dayKey(now), createdAt: now.getTime(), buf, type: 'image/jpeg' });
+  } catch (err) {
+    saving = false; $('#b-save').disabled = false;
+    toast('Save failed: ' + (err && (err.message || err.name) || err), 6000);
+    return;
+  }
+  saving = false;
   resetShoot();
   await refresh();
   const n = items.filter(it => it.date === dayKey()).length;
-  toast(n === GOAL ? `「${word}」を保存。今日の3語そろいました 🎉` : `「${word}」を保存しました（今日 ${n}/${GOAL}）`);
+  toast(n === GOAL ? `Saved “${word}”. 3 of 3 today 🎉` : `Saved “${word}” (${n}/${GOAL} today)`);
 };
 
 /* キーボードが出たら入力欄をその上へ（iOS Safari） */
@@ -375,17 +467,18 @@ if (window.visualViewport){
 
 /* ---------- ライブラリ ---------- */
 const urls = new Map();
-const urlOf = it => { if (!urls.has(it.id)) urls.set(it.id, URL.createObjectURL(it.blob)); return urls.get(it.id); };
+const blobOf = it => it.buf ? new Blob([it.buf], {type: it.type || 'image/jpeg'}) : it.blob;
+const urlOf = it => { if (!urls.has(it.id)) urls.set(it.id, URL.createObjectURL(blobOf(it))); return urls.get(it.id); };
 
 function renderLib(){
   const box = $('#lib');
   box.innerHTML = '';
-  if (!items.length){ box.innerHTML = '<div class="empty">まだ何もありません。<br>「採取」から1枚目を撮ってみましょう。</div>'; return; }
+  if (!items.length){ box.innerHTML = '<div class="empty">Nothing here yet.<br>Go to Collect and take your first photo.</div>'; return; }
   const groups = new Map();
   for (const it of items){ if (!groups.has(it.date)) groups.set(it.date, []); groups.get(it.date).push(it); }
   for (const [key, list] of groups){
     const sec = document.createElement('div'); sec.className = 'day';
-    sec.innerHTML = `<h2>${dayLabel(key)}<span>${list.length}語</span></h2>`;
+    sec.innerHTML = `<h2>${dayLabel(key)}<span>${list.length} ${list.length === 1 ? 'word' : 'words'}</span></h2>`;
     const grid = document.createElement('div'); grid.className = 'grid';
     for (const it of [...list].reverse()){
       const c = document.createElement('button'); c.className = 'card';
@@ -404,8 +497,9 @@ function openSheet(it){
   current = it;
   $('#s-img').src = urlOf(it);
   $('#s-word').textContent = it.word;
+  $('#s-ja').textContent = it.ja || '';
   const t = new Date(it.createdAt);
-  $('#s-date').textContent = `${dayLabel(it.date)}　${pad(t.getHours())}:${pad(t.getMinutes())}`;
+  $('#s-date').textContent = `${dayLabel(it.date)} · ${pad(t.getHours())}:${pad(t.getMinutes())}`;
   $('#sheet').hidden = false;
   speak(it.word);
 }
@@ -413,7 +507,7 @@ $('#s-close').onclick = () => { $('#sheet').hidden = true; current = null; };
 $('#s-speak').onclick = () => current && speak(current.word);
 $('#s-img').onclick = () => current && speak(current.word);
 $('#s-del').onclick = async () => {
-  if (!current || !confirm(`「${current.word}」を削除しますか？`)) return;
+  if (!current || !confirm(`Delete “${current.word}”?`)) return;
   await delItem(current.id);
   URL.revokeObjectURL(urls.get(current.id)); urls.delete(current.id);
   $('#sheet').hidden = true; current = null;
@@ -421,7 +515,7 @@ $('#s-del').onclick = async () => {
 };
 $('#s-share').onclick = async () => {
   if (!current) return;
-  const file = new File([current.blob], `${current.date}_${current.word}.jpg`, {type:'image/jpeg'});
+  const file = new File([blobOf(current)], `${current.date}_${current.word}.jpg`, {type:'image/jpeg'});
   if (navigator.canShare?.({files:[file]})){
     try { await navigator.share({files:[file]}); } catch {}
   } else {
@@ -434,7 +528,7 @@ const blobToData = b => new Promise(r => { const fr = new FileReader(); fr.onloa
 $('#b-export').onclick = async () => {
   const list = await allItems();
   const out = [];
-  for (const it of list) out.push({ ...it, blob: undefined, image: await blobToData(it.blob) });
+  for (const it of list) out.push({ id:it.id, word:it.word, ja:it.ja, date:it.date, createdAt:it.createdAt, image: await blobToData(blobOf(it)) });
   const blob = new Blob([JSON.stringify({ app:'drie-woorden', v:1, items:out })], {type:'application/json'});
   const name = `drie-woorden_${dayKey()}.json`;
   const file = new File([blob], name, {type:'application/json'});
@@ -450,11 +544,11 @@ $('#f-import').onchange = async e => {
     if (data.app !== 'drie-woorden') throw 0;
     let n = 0;
     for (const it of data.items){
-      const blob = await (await fetch(it.image)).blob();
-      await putItem({ id:it.id, word:it.word, date:it.date, createdAt:it.createdAt, blob }); n++;
+      const buf = await (await fetch(it.image)).arrayBuffer();
+      await putItem({ id:it.id, word:it.word, ja:it.ja, date:it.date, createdAt:it.createdAt, buf, type:'image/jpeg' }); n++;
     }
-    await refresh(); toast(`${n}件を戻しました`);
-  } catch { toast('この控えは読み込めませんでした'); }
+    await refresh(); toast(`Restored ${n} ${n === 1 ? 'item' : 'items'}`);
+  } catch { toast("Couldn't read this backup"); }
 };
 
 /* ---------- タブ・その他 ---------- */
@@ -465,7 +559,7 @@ document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
   $('#dock').hidden = b.dataset.tab !== 'shoot' || !photo;
 });
 function esc(s){ return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-let tt; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 2400); }
+let tt; function toast(msg, ms = 2400){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), ms); }
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
 refresh();

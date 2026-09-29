@@ -1,2 +1,4 @@
 src/*.txt
+src/*.json
+src/*.tgz
 .DS_Store
