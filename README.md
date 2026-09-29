@@ -4,7 +4,7 @@
 
 - **採取**：撮る（または写真から選ぶ）→ 写真の真ん中に白帯＋黒文字 → 単語を入力 → 保存
   - 入力中、欄の下に候補（よく使う語の順）。押すと入って読み上げる
-  - 欄の下に「✓ 辞書にある語／辞書に無い語」
+  - 欄の下に発音記号（IPA）と「✓ 辞書にある語／辞書に無い語」。2語以上は1語ずつ引いてつなぐ。ライブラリの詳細にも出る
   - 🔊 で端末のオランダ語音声（speechSynthesis, nl-NL）
   - 入力は「Dutch」「Japanese → Dutch」の切り替え。日本語で打つとオランダ語の訳が候補に出て、選ぶと Dutch 側に移って直せる。
     元の日本語は札として残り、ライブラリの詳細に出る（`ja`）。辞書に無ければ Google 翻訳へのリンク（押したときだけ外へ出る）
@@ -28,6 +28,7 @@
 | --- | --- | --- |
 | [FrequencyWords](https://github.com/hermitdave/FrequencyWords) nl_50k（OpenSubtitles 2018） | CC-BY-SA | 並び順（頻度） |
 | [OpenTaal](https://github.com/OpenTaal/opentaal-wordlist) basiswoorden-gekeurd | BSD / CC BY 3.0 | 正しい語かどうかの判定＋残りの候補 |
+| [ipa-dict](https://github.com/open-dict-data/ipa-dict) nl.txt（INT 提供の自動変換、手直しなし） | CC BY（ipa-dict は MIT） | 発音記号。`語\t/IPA/` の形で words.txt に同居（91,339 語） |
 
 頻度表のうち OpenTaal に載っている語だけ（23,442 語）を先に、OpenTaal の残りを後ろに（計 195,134 語）。
 人名や英語は OpenTaal で落ちる。

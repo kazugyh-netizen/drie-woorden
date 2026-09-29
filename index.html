@@ -82,6 +82,9 @@ main{padding:16px 16px calc(var(--safe-b) + 24px)}
 .state a{color:var(--ink)}
 .save{height:48px;border-radius:12px;background:var(--ink);color:#fff;font-weight:600;padding:0 16px;flex:none;font-size:15px}
 .save:disabled{opacity:.3}
+.ipa{font-family:"Charis SIL","Doulos SIL","Gentium Plus","Lucida Grande","Segoe UI",system-ui,sans-serif;font-weight:400}
+.state .ipa{font-size:15px;color:var(--ink);margin-right:8px}
+.sheet .pr{text-align:center;font-size:18px;color:var(--ink);min-height:1em;margin-bottom:4px}
 .sheet .ja{text-align:center;color:var(--sub);font-size:14px;margin-bottom:10px;min-height:1em}
 
 /* ライブラリ */
@@ -175,6 +178,7 @@ main{padding:16px 16px calc(var(--safe-b) + 24px)}
   <div class="top"><span class="d" id="s-date"></span><button class="btn" id="s-close">Close</button></div>
   <img id="s-img" alt="">
   <div class="word"><b id="s-word"></b><button class="speak" id="s-speak" aria-label="Speak">🔊</button></div>
+  <div class="pr ipa" id="s-ipa"></div>
   <div class="ja" id="s-ja"></div>
   <div class="acts">
     <button class="btn" id="s-share">Save image</button>
@@ -261,16 +265,24 @@ function speak(text){
 }
 
 /* ---------- 単語リスト（入力候補） ---------- */
-let WORDS = [], FREQ_N = 0, WORDSET = new Set(), NORM = [];
+let WORDS = [], FREQ_N = 0, WORDSET = new Set(), NORM = [], IPA = new Map();
 const norm = s => s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
 fetch('words.txt').then(r => r.text()).then(t => {
   const lines = t.split('\n');
   FREQ_N = +lines[0].slice(1);
-  WORDS = lines.slice(1);
+  WORDS = lines.slice(1).map(l => { const [w, p] = l.split('\t'); if (p) IPA.set(w, p); return w; });
   WORDSET = new Set(WORDS);
   NORM = WORDS.map(norm);
   onType();
 }).catch(() => {});
+
+// 発音記号。2語以上なら1語ずつ引いてつなぐ（1語でも欠けたら出さない）
+function ipaOf(text){
+  const ws = (text || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (!ws.length) return '';
+  const ps = ws.map(w => IPA.get(w) || IPA.get(w.replace(/[.,!?]/g, '')));
+  return ps.every(Boolean) ? '/' + ps.map(p => p.replace(/^\/|\/$/g, '')).join(' ') + '/' : '';
+}
 
 function suggest(q){
   const nq = norm(q.trim());
@@ -420,8 +432,11 @@ function onType(){
   }
   const tag = jaSrc ? `<span class="jatag">${esc(jaSrc)}<button id="b-untag" aria-label="Remove">✕</button></span>` : '';
   if (!has){ st.innerHTML = (WORDS.length ? '' : 'Loading word list…') + tag; st.className = 'state'; }
-  else if (WORDSET.has(nq) || WORDSET.has(nq.toLowerCase())){ st.innerHTML = '✓ In the dictionary' + tag; st.className = 'state ok'; }
-  else { st.innerHTML = (WORDS.length ? 'Not in the dictionary — check the spelling' : '') + tag; st.className = 'state'; }
+  else {
+    const p = ipaOf(nq), pr = p ? `<span class="ipa">${esc(p)}</span>` : '';
+    if (WORDSET.has(nq) || nq.toLowerCase().split(/\s+/).every(w => WORDSET.has(w))){ st.innerHTML = pr + '✓ In the dictionary' + tag; st.className = 'state ok'; }
+    else { st.innerHTML = pr + (WORDS.length ? 'Not in the dictionary — check the spelling' : '') + tag; st.className = 'state'; }
+  }
   const ut = $('#b-untag');
   if (ut){ ut.onpointerdown = e => e.preventDefault(); ut.onclick = () => { jaSrc = ''; onType(); }; }
 }
@@ -441,7 +456,7 @@ $('#b-save').onclick = async () => {
     const blob = await new Promise((ok, ng) => cv.toBlob(b => b ? ok(b) : ng(new Error('could not encode the image')), 'image/jpeg', JPEG_Q));
     const buf = await blob.arrayBuffer();
     const now = new Date();
-    await putItem({ id: now.getTime() + '-' + Math.random().toString(36).slice(2,6), word, ja: jaSrc || undefined,
+    await putItem({ id: now.getTime() + '-' + Math.random().toString(36).slice(2,6), word, ja: jaSrc || undefined, ipa: ipaOf(word) || undefined,
       date: dayKey(now), createdAt: now.getTime(), buf, type: 'image/jpeg' });
   } catch (err) {
     saving = false; $('#b-save').disabled = false;
@@ -498,6 +513,7 @@ function openSheet(it){
   $('#s-img').src = urlOf(it);
   $('#s-word').textContent = it.word;
   $('#s-ja').textContent = it.ja || '';
+  $('#s-ipa').textContent = it.ipa || ipaOf(it.word);
   const t = new Date(it.createdAt);
   $('#s-date').textContent = `${dayLabel(it.date)} · ${pad(t.getHours())}:${pad(t.getMinutes())}`;
   $('#sheet').hidden = false;
@@ -528,7 +544,7 @@ const blobToData = b => new Promise(r => { const fr = new FileReader(); fr.onloa
 $('#b-export').onclick = async () => {
   const list = await allItems();
   const out = [];
-  for (const it of list) out.push({ id:it.id, word:it.word, ja:it.ja, date:it.date, createdAt:it.createdAt, image: await blobToData(blobOf(it)) });
+  for (const it of list) out.push({ id:it.id, word:it.word, ja:it.ja, ipa:it.ipa, date:it.date, createdAt:it.createdAt, image: await blobToData(blobOf(it)) });
   const blob = new Blob([JSON.stringify({ app:'drie-woorden', v:1, items:out })], {type:'application/json'});
   const name = `drie-woorden_${dayKey()}.json`;
   const file = new File([blob], name, {type:'application/json'});
@@ -545,7 +561,7 @@ $('#f-import').onchange = async e => {
     let n = 0;
     for (const it of data.items){
       const buf = await (await fetch(it.image)).arrayBuffer();
-      await putItem({ id:it.id, word:it.word, ja:it.ja, date:it.date, createdAt:it.createdAt, buf, type:'image/jpeg' }); n++;
+      await putItem({ id:it.id, word:it.word, ja:it.ja, ipa:it.ipa, date:it.date, createdAt:it.createdAt, buf, type:'image/jpeg' }); n++;
     }
     await refresh(); toast(`Restored ${n} ${n === 1 ? 'item' : 'items'}`);
   } catch { toast("Couldn't read this backup"); }

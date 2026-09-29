@@ -1,5 +1,5 @@
 // 圏外でも開けるように、アプリ一式を端末に置いておく。中身を変えたら VERSION を上げる。
-const VERSION = 'dw-2';
+const VERSION = 'dw-3';
 const FILES = ['./', 'index.html', 'words.txt', 'ja_nl.txt', 'manifest.json', 'icon-180.png', 'icon-512.png'];
 self.addEventListener('install', e => e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting())));
 self.addEventListener('activate', e => e.waitUntil(
